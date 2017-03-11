@@ -3,7 +3,7 @@ sealnote-flaskr
 
 ## Overview:
 
-vishesh/sealnote is an android application that provides encrypted journal functionality. It does so by using a sqlcipher db which can be exported/imported.
+[sealnote](https://github.com/vishesh/sealnote) is an android application that provides encrypted journal functionality. It does so by using a sqlcipher db which can be exported/imported.
 
 This application assumes that such a db has been exported and creates a web interface around the db.
 
