@@ -27,7 +27,7 @@ app = Flask(__name__)
 app.config.update(dict(
     DATABASE=os.path.join(app.root_path, '../db/testdb'),
     DEBUG=True,
-    SECRET_KEY='development key',
+    SECRET_KEY=os.urandom(32).hex(),
 ))
 app.config.from_envvar('FLASKR_SETTINGS', silent=True)
 
@@ -39,6 +39,7 @@ def limit_remote_addr():
 def connect_db(password):
     """Connects to the specific database."""
     rv = sqlite3.connect(app.config['DATABASE'])
+    print("Connecting to:", app.config['DATABASE'])
     rv.cursor().execute('PRAGMA KEY = "%s"' % password);
     rv.row_factory = sqlite3.Row
     return rv
@@ -65,8 +66,9 @@ def show_entries():
         return redirect(url_for('login'))
 
     db = get_db(session['password'])
-    cur = db.execute('select title, content as text from notes order by created desc')
+    cur = db.execute('select title, content as text, created from notes order by created desc')
     entries = cur.fetchall()
+
     return render_template('show_entries.html', entries=entries)
 
 
@@ -107,6 +109,10 @@ def add_entry():
             'VALUES (-1, ?, ?, 0, ?, ?, ?)'),
                (title, content, created, edited, extra))
     db.commit()
+
+    if (app.config['DEBUG']):
+        print(title, content, created, edited, extra)
+
     flash('New entry was successfully posted')
     return redirect(url_for('show_entries'))
 

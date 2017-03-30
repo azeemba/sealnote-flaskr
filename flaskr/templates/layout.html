@@ -1,6 +1,19 @@
 <!doctype html>
 <title>Flaskr</title>
 <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js"> </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.11/moment-timezone-with-data-2010-2020.min.js"> </script>
+<script>
+  function loadTimes() {
+    var times = document.getElementsByClassName('timestr');
+    for (var i = 0; i < times.length; ++i) {
+      str = times[i].getAttribute('value').replace(" UTC", "");
+      out = moment.utc(str).tz("America/New_York").format("LLLL");
+      times[i].innerText = out;
+    }
+  }
+</script>
+<body onload="loadTimes()">
 <div class="page">
   <h1>Flaskr</h1>
   <div class="metanav">
@@ -15,3 +28,4 @@
   {% endfor %}
   {% block body %}{% endblock %}
 </div>
+</body>
