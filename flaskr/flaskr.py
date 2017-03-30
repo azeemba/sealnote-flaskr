@@ -15,8 +15,8 @@
 import os
 from pysqlcipher3 import dbapi2 as sqlite3
 from flask import Flask, request, session, g, redirect, url_for, abort, \
-     render_template, flash
-
+     render_template, flash, Markup
+import markdown
 from datetime import datetime
 
 
@@ -69,7 +69,16 @@ def show_entries():
     cur = db.execute('select title, content as text, created from notes order by created desc')
     entries = cur.fetchall()
 
-    return render_template('show_entries.html', entries=entries)
+    marked_entries = []
+
+    for entry in entries:
+        marked_entries.append({
+            'title': entry['title'],
+            'text': Markup(markdown.markdown(entry['text'])),
+            'created': entry['created']
+        })
+
+    return render_template('show_entries.html', entries=marked_entries)
 
 
 @app.route('/add', methods=['POST'])
