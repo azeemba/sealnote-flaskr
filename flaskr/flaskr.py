@@ -19,6 +19,7 @@ from flask import Flask, request, session, g, redirect, url_for, abort, \
 import markdown
 from datetime import datetime
 
+from remote import DropboxRemote
 
 # create our little application :)
 app = Flask(__name__)
@@ -28,12 +29,30 @@ app.config.update(dict(
     DATABASE=os.path.join(app.root_path, '../db/testdb'),
     DEBUG=True,
     SECRET_KEY=os.urandom(32).hex(),
+    DROPBOX_ACCESS_TOKEN=None,
+    DROPBOX_PATH=None
 ))
 app.config.from_envvar('FLASKR_SETTINGS', silent=True)
 
+if app.config['DROPBOX_ACCESS_TOKEN']:
+    print("Setting up dropbox remote with remote Dropbox:/", app.config['DROPBOX_PATH'])
+    remote = DropboxRemote(
+            app.config['DROPBOX_ACCESS_TOKEN'],
+            app.config['DATABASE'],
+            app.config['DROPBOX_PATH'])
+
+def loadRemoteDatabase():
+    if app.config['DROPBOX_ACCESS_TOKEN']:
+        remote.load()
+
+def saveRemoteDatabase():
+    if app.config['DROPBOX_ACCESS_TOKEN']:
+        remote.save()
+
 @app.before_request
 def limit_remote_addr():
-    if request.remote_addr != '127.0.0.1':
+    if '192.168' not in request.remote_addr:
+        print("Blocking ", request.remote_addr)
         abort(403)  # Forbidden
 
 def connect_db(password):
@@ -79,6 +98,38 @@ def show_entries():
         })
 
     return render_template('show_entries.html', entries=marked_entries)
+
+
+@app.route('/update', methods=['POST'])
+def update_entry():
+    if not session.get('logged_in'):
+        abort(401)
+    db = get_db(session['password'])
+
+    noteid = request.form['id']
+    title = request.form['title']
+    content = request.form['text']
+    if not title or not content:
+        return abort(400)
+
+    extra = content
+    edited = datetime.utcnow().isoformat() + " UTC"
+    
+    db.execute(
+            ('UPDATE notes '
+            'SET title = ?, '
+            'SET content = ?, '
+            'SET edited = ?, '
+            'SET content_extra = ?, '
+            'WHERE id = ?'),
+               (title, content, edited, extra, noteid))
+    db.commit()
+
+    if (app.config['DEBUG']):
+        print(title, content, created, edited, extra)
+
+    flash('Entry was updated')
+    return redirect(url_for('show_entries'))
 
 
 @app.route('/add', methods=['POST'])
@@ -129,8 +180,18 @@ def add_entry():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
+    loadRemoteDatabase() # its a no-op if remote not setup
     if request.method == 'POST':
-        session['password'] = request.form['password']
+        password = request.form['password']
+        try:
+            # test password
+            db = get_db(password)
+            cur = db.execute('select title from notes LIMIT 1')
+            cur.close()
+        except:
+            return render_template('login.html', error="Wrong password")
+        # if nothing threw, proceed
+        session['password'] = password
         session['logged_in'] = True
         flash('You were logged in')
         return redirect(url_for('show_entries'))
@@ -145,9 +206,11 @@ def logout():
     if hasattr(g, 'sqlite_db'):
         g.sqlite_db.close()
         del g.sqlite_db
+
+    saveRemoteDatabase() #its a no-op if rremote not setup
     flash('You were logged out')
     return redirect(url_for('show_entries'))
 
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host='0.0.0.0')
