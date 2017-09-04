@@ -180,8 +180,8 @@ def add_entry():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
-    loadRemoteDatabase() # its a no-op if remote not setup
     if request.method == 'POST':
+        loadRemoteDatabase() # its a no-op if remote not setup
         password = request.form['password']
         try:
             # test password
