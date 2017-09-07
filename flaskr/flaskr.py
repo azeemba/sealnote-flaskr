@@ -79,13 +79,17 @@ def close_db(error):
         g.sqlite_db.close()
 
 
-@app.route('/')
-def show_entries():
+@app.route('/', defaults={'page': 0})
+@app.route('/<int:page>')
+def show_entries(page):
     if 'password' not in session:
         return redirect(url_for('login'))
 
+    itemsPerPage = 10
     db = get_db(session['password'])
-    cur = db.execute('select title, content as text, created from notes order by created desc')
+    cur = db.execute(
+      'SELECT title, content AS text, created FROM notes ORDER BY created DESC LIMIT ? OFFSET ?',
+      (itemsPerPage, itemsPerPage*page))
     entries = cur.fetchall()
 
     marked_entries = []
@@ -180,8 +184,8 @@ def add_entry():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
-    loadRemoteDatabase() # its a no-op if remote not setup
     if request.method == 'POST':
+        loadRemoteDatabase() # its a no-op if remote not setup
         password = request.form['password']
         try:
             # test password
