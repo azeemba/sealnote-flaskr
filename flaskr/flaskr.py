@@ -79,13 +79,17 @@ def close_db(error):
         g.sqlite_db.close()
 
 
-@app.route('/')
-def show_entries():
+@app.route('/', defaults={'page': 0})
+@app.route('/<int:page>')
+def show_entries(page):
     if 'password' not in session:
         return redirect(url_for('login'))
 
+    itemsPerPage = 10
     db = get_db(session['password'])
-    cur = db.execute('select title, content as text, created from notes order by created desc')
+    cur = db.execute(
+      'SELECT title, content AS text, created FROM notes ORDER BY created DESC LIMIT ? OFFSET ?',
+      (itemsPerPage, itemsPerPage*page))
     entries = cur.fetchall()
 
     marked_entries = []
@@ -213,4 +217,4 @@ def logout():
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', ssl_context='adhoc')
