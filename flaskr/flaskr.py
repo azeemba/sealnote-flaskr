@@ -51,7 +51,7 @@ def saveRemoteDatabase():
 
 @app.before_request
 def limit_remote_addr():
-    if '192.168' not in request.remote_addr:
+    if '192.168' not in request.remote_addr and '127.0.0.1' != request.remote_addr:
         print("Blocking ", request.remote_addr)
         abort(403)  # Forbidden
 
@@ -185,7 +185,9 @@ def add_entry():
 def login():
     error = None
     if request.method == 'POST':
-        loadRemoteDatabase() # its a no-op if remote not setup
+        if request.form.get('hardload'):
+            loadRemoteDatabase() # its a no-op if remote not setup
+
         password = request.form['password']
         try:
             # test password
