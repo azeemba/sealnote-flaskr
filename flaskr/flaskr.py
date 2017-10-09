@@ -79,6 +79,29 @@ def close_db(error):
         g.sqlite_db.close()
 
 
+@app.route('/note/<int:note_id>')
+def show_entry(note_id):
+    print(note_id, type(note_id))
+
+    if 'password' not in session:
+        return redirect(url_for('login'))
+
+    db = get_db(session['password'])
+    cur = db.execute(
+          'SELECT _id, title, content AS text, created FROM notes WHERE _id = ?',
+          (note_id, ))
+    entries = cur.fetchall()
+    entry = entries[0]
+    result = {
+            'id': entry['_id'],
+            'title': entry['title'],
+            'text': entry['text'],
+            'created': entry['created']
+    }
+
+    return render_template('entry.html', entry=result)
+
+
 @app.route('/', defaults={'page': 0})
 @app.route('/<int:page>')
 def show_entries(page):
@@ -88,7 +111,7 @@ def show_entries(page):
     itemsPerPage = 10
     db = get_db(session['password'])
     cur = db.execute(
-      'SELECT title, content AS text, created FROM notes ORDER BY created DESC LIMIT ? OFFSET ?',
+      'SELECT _id, title, content AS text, created FROM notes ORDER BY created DESC LIMIT ? OFFSET ?',
       (itemsPerPage, itemsPerPage*page))
     entries = cur.fetchall()
 
@@ -96,6 +119,7 @@ def show_entries(page):
 
     for entry in entries:
         marked_entries.append({
+            'id': entry['_id'],
             'title': entry['title'],
             'text': Markup(markdown.markdown(entry['text'])),
             'created': entry['created']
@@ -122,15 +146,15 @@ def update_entry():
     db.execute(
             ('UPDATE notes '
             'SET title = ?, '
-            'SET content = ?, '
-            'SET edited = ?, '
-            'SET content_extra = ?, '
-            'WHERE id = ?'),
+            'content = ?, '
+            'edited = ?, '
+            'content_extra = ? '
+            'WHERE _id = ?'),
                (title, content, edited, extra, noteid))
     db.commit()
 
     if (app.config['DEBUG']):
-        print(title, content, created, edited, extra)
+        print(title, content, edited, extra)
 
     flash('Entry was updated')
     return redirect(url_for('show_entries'))
