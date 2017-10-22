@@ -118,10 +118,12 @@ def show_entries(page):
     marked_entries = []
 
     for entry in entries:
+        word_count = len(entry['text'].split())
         marked_entries.append({
             'id': entry['_id'],
             'title': entry['title'],
             'text': Markup(markdown.markdown(entry['text'])),
+            'word_count': word_count,
             'created': entry['created']
         })
 

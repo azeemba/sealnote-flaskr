@@ -15,6 +15,7 @@
   {% for entry in entries %}
     <li>
       <h2>{{ entry.title }}</h2>
+      <div style="font-size:small">{{ entry.word_count }} words</div>
       <a href={{ url_for('show_entry', note_id=entry.id) }} style="float:right">Edit</a>
       <p class="timestr"
          style="font-size:0.8em"
