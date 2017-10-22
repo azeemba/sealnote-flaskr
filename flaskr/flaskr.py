@@ -239,7 +239,10 @@ def logout():
         g.sqlite_db.close()
         del g.sqlite_db
 
-    saveRemoteDatabase() #its a no-op if rremote not setup
+    quick_logoff = request.args.get('quick', None)
+    if quick_logoff is None:
+        saveRemoteDatabase() #its a no-op if rremote not setup
+
     flash('You were logged out')
     return redirect(url_for('show_entries'))
 
